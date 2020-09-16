@@ -1,91 +1,91 @@
 # VirtualizationCloudComputingProject
 
 Objective: 
-
-To build a distributed architecture consisting of 3 Virtual Machines (Ubuntu Server 16.04).  The three machines will be placed in a Docker Swarm and will share a file system thanks to GlusterFS technology. 
-The Swarm will house the following containers:
- træfik, Joomla, Prometheus, MariaDB, Grafana
-
+</br>
+To build a distributed architecture consisting of 3 Virtual Machines (Ubuntu Server 16.04).  The three machines will be placed in a Docker Swarm and will share a file system thanks to GlusterFS technology. </br>
+The Swarm will house the following containers:</br>
+ træfik</br> Joomla</br> Prometheus</br> MariaDB</br> Grafana</br>
+</br>
 Setup commands
-
-sudo apt install curl
-sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-sudo apt-get install software-properties-common
-sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-sudo apt-get update
-sudo apt-get install docker-ce docker-ce-cli containerd.io
-sudo usermod -aG docker [user]
-sudo systemctl restart docker
-Docker Compose
-sudo curl -L "https://github.com/docker/compose/releases/download/1.24.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
+</br>
+sudo apt install curl </br>
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add - </br>
+sudo apt-get install software-properties-common</br>
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"</br>
+sudo apt-get update</br></br>
+sudo apt-get install docker-ce docker-ce-cli containerd.io</br>
+sudo usermod -aG docker [user]</br>
+sudo systemctl restart docker</br>
+Docker Compose</br>
+sudo curl -L "https://github.com/docker/compose/releases/download/1.24.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose</br>
+sudo chmod +x /usr/local/bin/docker-compose</br>
 <br /> 
 Clone -> VM2 and VM3 from VM1
 <br /> 
 ![Image](https://drive.google.com/file/d/1jDpqFHpVF9In5qHod_ZDKoOZBqt1vOJX/view?usp=sharing)
 <br /> 
-sudo nano /etc/network/interfaces
-auto ens38
-iface ens38 inet static
-address 10.0.0.11
-netmask 255.255.255.0
-network 10.0.0.0
-gateway 10.0.0.2 
+sudo nano /etc/network/interfaces</br>
+auto ens38</br>
+iface ens38 inet static</br>
+address 10.0.0.11</br>
+netmask 255.255.255.0</br>
+network 10.0.0.0</br>
+gateway 10.0.0.2 </br>
 <br /> 
-sudo nano /etc/hosts
-VMware GlusterFS
-10.0.0.11 vm1g
-10.0.0.12 vm2g
-10.0.0.13 vm3g
+sudo nano /etc/hosts</br>
+VMware GlusterFS</br>
+10.0.0.11 vm1g</br>
+10.0.0.12 vm2g</br>
+10.0.0.13 vm3g</br>
 
-sudo reboot
-ping vm2g
+sudo reboot</br>
+ping vm2g</br>
 
-sudo apt update; 
-sudo apt -y install glusterfs-server glusterfs-client
+sudo apt update; </br>
+sudo apt -y install glusterfs-server glusterfs-client</br>
 
-Start the service:
-sudo service glusterfs-server start
+Start the service:</br>
+sudo service glusterfs-server start</br>
 
-Peer the service
-sudo gluster peer probe vm2g
-sudo gluster peer probe vm3g
+Peer the service</br>
+sudo gluster peer probe vm2g</br>
+sudo gluster peer probe vm3g</br>
+</br>
+Check the status</br>
+sudo gluster peer status</br>
+</br>
+Bricks folder</br>
+sudo mkdir -p /gluster/bricks/1 (on vm1)</br>
+sudo mkdir -p /gluster/bricks/2 (on vm2)</br>
+sudo mkdir -p /gluster/bricks/3 (on vm3)</br>
 
-Check the status
-sudo gluster peer status
+Add the line to the / etc / fstab file on the VMs  for mount the bricks</br>
+echo '/dev/sdb /gluster/bricks/1 ext4 defaults 0 0' >> /etc/fstab (on vm1)</br>
+echo '/dev/sdb /gluster/bricks/2 ext4 defaults 0 0' >> /etc/fstab (on vm2)</br>
+echo '/dev/sdb /gluster/bricks/3 ext4 defaults 0 0' >> /etc/fstab (on vm3)</br>
 
-Bricks folder
-sudo mkdir -p /gluster/bricks/1 (on vm1)
-sudo mkdir -p /gluster/bricks/2 (on vm2)
-sudo mkdir -p /gluster/bricks/3 (on vm3)
+Mount filesystem</br>
+sudo mount -a (on vm1, vm2, vm3)</br>
 
-Add the line to the / etc / fstab file on the VMs  for mount the bricks
-echo '/dev/sdb /gluster/bricks/1 ext4 defaults 0 0' >> /etc/fstab (on vm1)
-echo '/dev/sdb /gluster/bricks/2 ext4 defaults 0 0' >> /etc/fstab (on vm2)
-echo '/dev/sdb /gluster/bricks/3 ext4 defaults 0 0' >> /etc/fstab (on vm3)
-
-Mount filesystem
-sudo mount -a (on vm1, vm2, vm3)
-
-Create gfs volume
-sudo gluster volume create gfs replica 3 \
-vm1g:/gluster/bricks/1/brick \
-vm2g:/gluster/bricks/2/brick \
-vm3g:/gluster/bricks/3/ brick 
-
-Start  volume
-sudo gluster volume start gfs
-
-Check the status
-sudo gluster volume info gfs
-sudo gluster volume status gfs
-
-Three VM to connect to gfs on each node
-sudo gluster volume set gfs auth.allow 10.0.0.11, 10.0.0.12,10.0.0.13
-sudo gluster volume set gfs nfs.disable Off
-
-Mount the volume 
-sudo mkdir /gfs
+Create gfs volume</br>
+sudo gluster volume create gfs replica 3 \</br>
+vm1g:/gluster/bricks/1/brick \</br>
+vm2g:/gluster/bricks/2/brick \</br>
+vm3g:/gluster/bricks/3/ brick </br>
+</br>
+Start  volume</br>
+sudo gluster volume start gfs</br>
+</br>
+Check the status</br>
+sudo gluster volume info gfs</br>
+sudo gluster volume status gfs</br>
+</br>
+Three VM to connect to gfs on each node</br>
+sudo gluster volume set gfs auth.allow 10.0.0.11, 10.0.0.12,10.0.0.13</br>
+sudo gluster volume set gfs nfs.disable Off</br>
+</br>
+Mount the volume </br>
+sudo mkdir /gfs</br>
 sudo su<br /> <br /> 
 echo 'localhost:/gfs /gfs glusterfs defaults,_netdev,backupvolfile-server=localhost 0 0' >> /etc/fstab<br /> 
 sudo mount -a<br /> 
