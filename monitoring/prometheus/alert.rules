@@ -1,0 +1,510 @@
+groups:
+- name: alert_rules
+  rules:
+  - alert: OutOfMemory
+    expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100 < 10
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Out of memory (instance {{ $labels.instance }})"
+      description: "Node memory is filling up (< 10% left)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: UnusualNetworkThroughputIn
+    expr: sum by (instance) (irate(node_network_receive_bytes_total[2m])) / 1024 / 1024 > 100
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Unusual network throughput in (instance {{ $labels.instance }})"
+      description: "Host network interfaces are probably receiving too much data (> 100 MB/s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: UnusualNetworkThroughputOut
+    expr: sum by (instance) (irate(node_network_transmit_bytes_total[2m])) / 1024 / 1024 > 100
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Unusual network throughput out (instance {{ $labels.instance }})"
+      description: "Host network interfaces are probably sending too much data (> 100 MB/s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: UnusualDiskReadRate
+    expr: sum by (instance) (irate(node_disk_read_bytes_total[2m])) / 1024 / 1024 > 50
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Unusual disk read rate (instance {{ $labels.instance }})"
+      description: "Disk is probably reading too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: UnusualDiskWriteRate
+    expr: sum by (instance) (irate(node_disk_written_bytes_total[2m])) / 1024 / 1024 > 50
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Unusual disk write rate (instance {{ $labels.instance }})"
+      description: "Disk is probably writing too much data (> 50 MB/s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: OutOfDiskSpace
+    expr: (node_filesystem_avail_bytes{mountpoint="/rootfs"}  * 100) / node_filesystem_size_bytes{mountpoint="/rootfs"} < 10
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Out of disk space (instance {{ $labels.instance }})"
+      description: "Disk is almost full (< 10% left)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: DiskWillFillIn4Hours
+    expr: predict_linear(node_filesystem_free_bytes{fstype!~"tmpfs"}[1h], 4 * 3600) < 0
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Disk will fill in 4 hours (instance {{ $labels.instance }})"
+      description: "Disk will fill in 4 hours at current write rate\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: OutOfInodes
+    expr: node_filesystem_files_free{mountpoint ="/rootfs"} / node_filesystem_files{mountpoint ="/rootfs"} * 100 < 10
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Out of inodes (instance {{ $labels.instance }})"
+      description: "Disk is almost running out of available inodes (< 10% left)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: UnusualDiskReadLatency
+    expr: rate(node_disk_read_time_seconds_total[1m]) / rate(node_disk_reads_completed_total[1m]) > 100
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Unusual disk read latency (instance {{ $labels.instance }})"
+      description: "Disk latency is growing (read operations > 100ms)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: UnusualDiskWriteLatency
+    expr: rate(node_disk_write_time_seconds_total[1m]) / rate(node_disk_writes_completed_total[1m]) > 100
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Unusual disk write latency (instance {{ $labels.instance }})"
+      description: "Disk latency is growing (write operations > 100ms)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: HighCpuLoad
+    expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU load (instance {{ $labels.instance }})"
+      description: "CPU load is > 80%\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  # 1000 context switches is an arbitrary number.
+  # Alert threshold depends on nature of application.
+  # Please read: https://github.com/samber/awesome-prometheus-alerts/issues/58
+
+  - alert: ContextSwitching
+    expr: rate(node_context_switches_total[5m]) > 1000
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Context switching (instance {{ $labels.instance }})"
+      description: "Context switching is growing on node (> 1000 / s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: SwapIsFillingUp
+    expr: (1 - (node_memory_SwapFree_bytes / node_memory_SwapTotal_bytes)) * 100 > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Swap is filling up (instance {{ $labels.instance }})"
+      description: "Swap is filling up (>80%)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: SystemdServiceCrashed
+    expr: node_systemd_unit_state{state="failed"} == 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "SystemD service crashed (instance {{ $labels.instance }})"
+      description: "SystemD service crashed\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: PhysicalComponentTooHot
+    expr: node_hwmon_temp_celsius > 75
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Physical component too hot (instance {{ $labels.instance }})"
+      description: "Physical hardware component too hot\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: NodeOvertemperatureAlarm
+    expr: node_hwmon_temp_alarm == 1
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Node overtemperature alarm (instance {{ $labels.instance }})"
+      description: "Physical node temperature alarm triggered\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: ServiceHealthcheckFailed
+    expr: consul_catalog_service_node_healthy == 0
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "Service healthcheck failed (instance {{ $labels.instance }})"
+      description: "Service: `{{ $labels.service_name }}` Healthcheck: `{{ $labels.service_id }}`\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: MissingConsulMasterNode
+    expr: consul_raft_peers < number_of_consul_master
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "Missing Consul master node (instance {{ $labels.instance }})"
+      description: "Numbers of consul raft peers less then expected <https://example.ru/ui/{{ $labels.dc }}/services/consul|Consul masters>\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: InsufficientMembers
+    expr: count(etcd_server_id) % 2 == 0
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "Insufficient Members (instance {{ $labels.instance }})"
+      description: "Etcd cluster should have an odd number of members\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: NoLeader
+    expr: etcd_server_has_leader == 0
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "No Leader (instance {{ $labels.instance }})"
+      description: "Etcd cluster have no leader\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: HighNumberOfLeaderChanges
+    expr: increase(etcd_server_leader_changes_seen_total[1h]) > 3
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High number of leader changes (instance {{ $labels.instance }})"
+      description: "Etcd leader changed more than 3 times during last hour\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: HighNumberOfFailedGrpcRequests
+    expr: sum(rate(grpc_server_handled_total{grpc_code!="OK"}[5m])) BY (grpc_service, grpc_method) / sum(rate(grpc_server_handled_total[5m])) BY (grpc_service, grpc_method) > 0.01
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High number of failed GRPC requests (instance {{ $labels.instance }})"
+      description: "More than 1% GRPC request failure detected in Etcd for 5 minutes\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: HighNumberOfFailedGrpcRequests
+    expr: sum(rate(grpc_server_handled_total{grpc_code!="OK"}[5m])) BY (grpc_service, grpc_method) / sum(rate(grpc_server_handled_total[5m])) BY (grpc_service, grpc_method) > 0.05
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "High number of failed GRPC requests (instance {{ $labels.instance }})"
+      description: "More than 5% GRPC request failure detected in Etcd for 5 minutes\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: GrpcRequestsSlow
+    expr: histogram_quantile(0.99, sum(rate(grpc_server_handling_seconds_bucket{grpc_type="unary"}[5m])) by (grpc_service, grpc_method, le)) > 0.15
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "GRPC requests slow (instance {{ $labels.instance }})"
+      description: "GRPC requests slowing down, 99th percentil is over 0.15s for 5 minutes\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: HighNumberOfFailedHttpRequests
+    expr: sum(rate(etcd_http_failed_total[5m])) BY (method) / sum(rate(etcd_http_received_total[5m])) BY (method) > 0.01
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High number of failed HTTP requests (instance {{ $labels.instance }})"
+      description: "More than 1% HTTP failure detected in Etcd for 5 minutes\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: HighNumberOfFailedHttpRequests
+    expr: sum(rate(etcd_http_failed_total[5m])) BY (method) / sum(rate(etcd_http_received_total[5m])) BY (method) > 0.05
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "High number of failed HTTP requests (instance {{ $labels.instance }})"
+      description: "More than 5% HTTP failure detected in Etcd for 5 minutes\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: HttpRequestsSlow
+    expr: histogram_quantile(0.99, rate(etcd_http_successful_duration_seconds_bucket[5m])) > 0.15
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "HTTP requests slow (instance {{ $labels.instance }})"
+      description: "HTTP requests slowing down, 99th percentil is over 0.15s for 5 minutes\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: EtcdMemberCommunicationSlow
+    expr: histogram_quantile(0.99, rate(etcd_network_peer_round_trip_time_seconds_bucket[5m])) > 0.15
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Etcd member communication slow (instance {{ $labels.instance }})"
+      description: "Etcd member communication slowing down, 99th percentil is over 0.15s for 5 minutes\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: HighNumberOfFailedProposals
+    expr: increase(etcd_server_proposals_failed_total[1h]) > 5
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High number of failed proposals (instance {{ $labels.instance }})"
+      description: "Etcd server got more than 5 failed proposals past hour\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: HighFsyncDurations
+    expr: histogram_quantile(0.99, rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m])) > 0.5
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High fsync durations (instance {{ $labels.instance }})"
+      description: "Etcd WAL fsync duration increasing, 99th percentil is over 0.5s for 5 minutes\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: HighCommitDurations
+    expr: histogram_quantile(0.99, rate(etcd_disk_backend_commit_duration_seconds_bucket[5m])) > 0.25
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High commit durations (instance {{ $labels.instance }})"
+      description: "Etcd commit duration increasing, 99th percentil is over 0.25s for 5 minutes\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: KafkaTopics
+    expr: sum(kafka_topic_partition_in_sync_replica) by (topic) < 3
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "Kafka Topics (instance {{ $labels.instance }})"
+      description: "Kafka topic in-sync partition\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: KafkaConsumersGroup
+    expr: sum(kafka_consumergroup_lag) by (consumergroup) > 50
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "Kafka consumers group (instance {{ $labels.instance }})"
+      description: "Kafka consumers group\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: ProbeFailed
+    expr: probe_success == 0
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "Probe failed (instance {{ $labels.instance }})"
+      description: "Probe failed\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: SlowProbe
+    expr: avg_over_time(probe_duration_seconds[1m]) > 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Slow probe (instance {{ $labels.instance }})"
+      description: "Blackbox probe took more than 1s to complete\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: HttpStatusCode
+    expr: probe_http_status_code <= 199 OR probe_http_status_code >= 400
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "HTTP Status Code (instance {{ $labels.instance }})"
+      description: "HTTP status code is not 200-399\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: SslCertificateWillExpireSoon
+    expr: probe_ssl_earliest_cert_expiry - time() < 86400 * 30
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "SSL certificate will expire soon (instance {{ $labels.instance }})"
+      description: "SSL certificate expires in 30 days\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: SslCertificateExpired
+    expr: probe_ssl_earliest_cert_expiry - time()  <= 0
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "SSL certificate expired (instance {{ $labels.instance }})"
+      description: "SSL certificate has expired already\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: HttpSlowRequests
+    expr: avg_over_time(probe_http_duration_seconds[1m]) > 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "HTTP slow requests (instance {{ $labels.instance }})"
+      description: "HTTP request took more than 1s\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: SlowPing
+    expr: avg_over_time(probe_icmp_duration_seconds[1m]) > 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Slow ping (instance {{ $labels.instance }})"
+      description: "Blackbox ping took more than 1s\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: CollectorError
+    expr: wmi_exporter_collector_success == 0
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "Collector Error (instance {{ $labels.instance }})"
+      description: "Collector {{ $labels.collector }} was not successful\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: ServiceStatus
+    expr: wmi_service_status{status="ok"} != 1
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "Service Status (instance {{ $labels.instance }})"
+      description: "Windows Service state is not OK\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: CpuUsage
+    expr: 100 - (avg by (instance) (irate(wmi_cpu_time_total{mode="idle"}[2m])) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "CPU Usage (instance {{ $labels.instance }})"
+      description: "CPU Usage is more than 80%\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: MemoryUsage
+    expr: 100*(wmi_os_physical_memory_free_bytes) / wmi_cs_physical_memory_bytes > 90
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Memory Usage (instance {{ $labels.instance }})"
+      description: "Memory Usage is more than 90%\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: DiskSpaceUsage
+    expr: 100.0 - 100 * ((wmi_logical_disk_free_bytes{} / 1024 / 1024 ) / (wmi_logical_disk_size_bytes{}  / 1024 / 1024)) > 80
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "Disk Space Usage (instance {{ $labels.instance }})"
+      description: "Disk Space on Drive is used more than 80%\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: UsedPoolCapacity
+    expr: (openebs_used_pool_capacity_percent) > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Used pool capacity (instance {{ $labels.instance }})"
+      description: "OpenEBS Pool use more than 80% of his capacity\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: DiskDown
+    expr: minio_offline_disks > 0
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "Disk down (instance {{ $labels.instance }})"
+      description: "Minio Disk is down\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: ContainerKilled
+    expr: time() - container_last_seen > 60
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container killed (instance {{ $labels.instance }})"
+      description: "A container has disappeared\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: ContainerCpuUsage
+    expr: (sum(rate(container_cpu_usage_seconds_total[3m])) BY (instance, name) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container CPU usage (instance {{ $labels.instance }})"
+      description: "Container CPU usage is above 80%\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: ContainerMemoryUsage
+    expr: (sum(container_memory_usage_bytes) BY (instance) / sum(container_memory_max_usage_bytes) BY (instance) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container Memory usage (instance {{ $labels.instance }})"
+      description: "Container Memory usage is above 80%\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: ContainerVolumeUsage
+    expr: (1 - (sum(container_fs_inodes_free) BY (instance) / sum(container_fs_inodes_total) BY (instance)) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container Volume usage (instance {{ $labels.instance }})"
+      description: "Container Volume usage is above 80%\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: ContainerVolumeIoUsage
+    expr: (sum(container_fs_io_current) BY (instance, name) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Container Volume IO usage (instance {{ $labels.instance }})"
+      description: "Container Volume IO usage is above 80%\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: SwitchIsDown
+    expr: junos_up == 0
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "Switch is down (instance {{ $labels.instance }})"
+      description: "The switch appears to be down\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: HighBandwithUsage1gib
+    expr: irate(junos_interface_transmit_bytes[1m]) * 8 > 1e+9 * 0.90
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "High Bandwith Usage 1GiB (instance {{ $labels.instance }})"
+      description: "Interface is highly saturated for at least 1 min. (> 0.90GiB/s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: HighBandwithUsage1gib
+    expr: irate(junos_interface_transmit_bytes[1m]) * 8 > 1e+9 * 0.80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High Bandwith Usage 1GiB (instance {{ $labels.instance }})"
+      description: "Interface is getting saturated for at least 1 min. (> 0.80GiB/s)\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
+
+  - alert: CorednsPanicCount
+    expr: increase(coredns_panic_count_total[10m]) > 0
+    for: 5m
+    labels:
+      severity: error
+    annotations:
+      summary: "CoreDNS Panic Count (instance {{ $labels.instance }})"
+      description: "Number of CoreDNS panics encountered\n  VALUE = {{ $value }}\n  LABELS: {{ $labels }}"
