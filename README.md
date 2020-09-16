@@ -22,7 +22,7 @@ sudo chmod +x /usr/local/bin/docker-compose</br>
 <br /> 
 Clone -> VM2 and VM3 from VM1
 <br /> 
-![Image](https://drive.google.com/file/d/1jDpqFHpVF9In5qHod_ZDKoOZBqt1vOJX/view?usp=sharing)
+![Image](https://github.com/sahityacodes/VirtualizationCloudComputingProject/blob/master/Network.PNG?raw=true)
 <br /> 
 sudo nano /etc/network/interfaces</br>
 auto ens38</br>
