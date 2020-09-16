@@ -19,11 +19,11 @@ sudo systemctl restart docker
 Docker Compose
 sudo curl -L "https://github.com/docker/compose/releases/download/1.24.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 sudo chmod +x /usr/local/bin/docker-compose
-
+<br /> 
 Clone -> VM2 and VM3 from VM1
-
+<br /> 
 ![Image](https://drive.google.com/file/d/1jDpqFHpVF9In5qHod_ZDKoOZBqt1vOJX/view?usp=sharing)
-
+<br /> 
 sudo nano /etc/network/interfaces
 auto ens38
 iface ens38 inet static
@@ -31,7 +31,7 @@ address 10.0.0.11
 netmask 255.255.255.0
 network 10.0.0.0
 gateway 10.0.0.2 
- 
+<br /> 
 sudo nano /etc/hosts
 VMware GlusterFS
 10.0.0.11 vm1g
@@ -60,7 +60,6 @@ sudo mkdir -p /gluster/bricks/2 (on vm2)
 sudo mkdir -p /gluster/bricks/3 (on vm3)
 
 Add the line to the / etc / fstab file on the VMs  for mount the bricks
-sudo on 
 echo '/dev/sdb /gluster/bricks/1 ext4 defaults 0 0' >> /etc/fstab (on vm1)
 echo '/dev/sdb /gluster/bricks/2 ext4 defaults 0 0' >> /etc/fstab (on vm2)
 echo '/dev/sdb /gluster/bricks/3 ext4 defaults 0 0' >> /etc/fstab (on vm3)
@@ -87,51 +86,51 @@ sudo gluster volume set gfs nfs.disable Off
 
 Mount the volume 
 sudo mkdir /gfs
-sudo su
-echo 'localhost:/gfs /gfs glusterfs defaults,_netdev,backupvolfile-server=localhost 0 0' >> /etc/fstab
-sudo mount -a
+sudo su<br /> <br /> 
+echo 'localhost:/gfs /gfs glusterfs defaults,_netdev,backupvolfile-server=localhost 0 0' >> /etc/fstab<br /> 
+sudo mount -a<br /> 
  
-Set current user as owner to /gfs
-sudo su
-chown -R sahitya : sahitya /gfs/
+Set current user as owner to /gfs<br /> 
+sudo on<br /> 
+chown -R sahitya : sahitya /gfs/<br /> 
 
-Create a file on a virtual machine
-echo “Hello world”> /gfs/hello.txt
+Create a file on a virtual machine<br /> <br /> 
+echo “Hello world”> /gfs/hello.txt<br /> 
 
-Verify on other two VM
-cat /gfs/hello.txt
+Verify on other two VM<br /> 
+cat /gfs/hello.txt<br /> 
 
-Create folders
-mkdir /gfs/joomla
-mkdir /gfs/phpmyadmin
-mkdir /gfs/mysql
-mkdir /gfs/grafana
-chmod -R a=rwx /gfs/grafana/
-
-Swam Manager
-docker swarm init --advertise-addr ens33
-docker swarm join-token manager
-
-Swam worker 
-docker node promote <node name>
-docker node demote <node name>
-
-Building images
-docker build . -t joomla_img
-docker build . -t pmy_img
-
-Docker stack Deploy
-docker stack deploy joomlastack -c docker-compose.yml
-docker stack ps joomlastack
-docker stack ps joomlastack --no-trunc
-docker stack services joomlastack
-docker service logs <service name>
-docker stack rm joomlastack
-
-Scaling up and down
-docker node update --availability Drain vm2
-docker node update --availability Active vm2
-docker service scale joomlastack_joomla=2 
+Create folders<br /> 
+mkdir /gfs/joomla<br /> 
+mkdir /gfs/phpmyadmin<br /> 
+mkdir /gfs/mysql<br /> 
+mkdir /gfs/grafana<br /> 
+chmod -R a=rwx /gfs/grafana/<br /> 
+<br /> 
+Swam Manager<br /> 
+docker swarm init --advertise-addr ens33<br /> 
+docker swarm join-token manager<br /> 
+<br /> 
+Swam worker<br /> 
+docker node promote <node name><br /> 
+docker node demote <node name><br /> 
+<br /> 
+Building images<br /> 
+docker build . -t joomla_img<br /> 
+docker build . -t pmy_img<br /> 
+<br /> 
+Docker stack Deploy<br /> 
+docker stack deploy joomlastack -c docker-compose.yml<br /> 
+docker stack ps joomlastack<br /> 
+docker stack ps joomlastack --no-trunc<br /> 
+docker stack services joomlastack<br /> 
+docker service logs <service name><br /> 
+docker stack rm joomlastack<br /> 
+<br /> 
+Scaling up and down<br /> 
+docker node update --availability Drain vm2<br /> 
+docker node update --availability Active vm2<br /> 
+docker service scale joomlastack_joomla=2 <br /> 
 
 
 
