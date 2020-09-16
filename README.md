@@ -131,6 +131,12 @@ Scaling up and down<br />
 docker node update --availability Drain vm2<br /> 
 docker node update --availability Active vm2<br /> 
 docker service scale joomlastack_joomla=2 <br /> 
+ </br>
+Bonus:
+</br>
+Split-Brain condition</br>
+gluster volume heal <VOLNAME> info split-brain
+
 
 
 
